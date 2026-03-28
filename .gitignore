@@ -1,0 +1,126 @@
+# ═══════════════════════════════════════════════════════════════
+#  FINANALYZER — Root .gitignore
+#  Place this file at the project root alongside backend/ frontend/
+# ═══════════════════════════════════════════════════════════════
+
+
+# ── Python ───────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+backend/venv/
+backend/env/
+
+# ── Environment variables (NEVER commit secrets) ──────────────────
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+backend/.env
+frontend/.env.local
+frontend/.env.production
+frontend/.env.staging
+
+# ── Database ──────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+finanalyzer.db
+backend/finanalyzer.db
+
+# ── User uploads (runtime files) ─────────────────────────────────
+backend/uploads/
+
+# ── Logs ──────────────────────────────────────────────────────────
+*.log
+logs/
+backend/logs/
+frontend/logs/
+
+# ── Node / Frontend ───────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+
+# Next.js build output
+.next/
+frontend/.next/
+out/
+frontend/out/
+
+# Vercel deployment
+.vercel
+frontend/.vercel
+
+# Next.js cache
+frontend/.next/cache/
+
+# ── Docker ────────────────────────────────────────────────────────
+# Keep: Dockerfile, docker-compose.yml (safe to commit)
+# Ignore runtime docker data
+.docker/
+
+# ── OS files ──────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ── IDE / Editor ──────────────────────────────────────────────────
+# VSCode
+.vscode/settings.json
+.vscode/tasks.json
+
+# JetBrains (PyCharm, WebStorm)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim / Emacs
+*.swp
+*.swo
+*.swn
+.#*
+
+# ── Python testing / coverage ────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# ── Misc ──────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+.cache/
+.temp/
