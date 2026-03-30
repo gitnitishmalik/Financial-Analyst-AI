@@ -144,7 +144,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
         border: "1px solid rgba(255,255,255,0.08)",
       }}
     >
-      {/* Card header */}
       <div className="flex items-center justify-between mb-2">
         <div>
           <p className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.7)", fontFamily: "JetBrains Mono, monospace" }}>
@@ -168,7 +167,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
         </span>
       </div>
 
-      {/* SVG */}
       <div className="relative">
         <svg
           ref={svgRef}
@@ -189,7 +187,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
             </clipPath>
           </defs>
 
-          {/* Y grid + labels */}
           {yTickVals.map((v, i) => (
             <g key={i}>
               <line
@@ -208,7 +205,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
             </g>
           ))}
 
-          {/* Zero line */}
           {minVal < 0 && maxVal > 0 && (
             <line
               x1={PAD.left} x2={PAD.left + chartW}
@@ -217,7 +213,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
             />
           )}
 
-          {/* X labels */}
           {config.data.map((d, i) => (
             <text
               key={i} x={xScale(i)} y={H - 7}
@@ -230,7 +225,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
           ))}
 
           <g clipPath="url(#ic)">
-            {/* Area fills */}
             {config.keys.map((key, ki) => (
               <path
                 key={`a-${ki}`} d={buildArea(key)}
@@ -238,7 +232,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
                 style={{ opacity: animated ? 1 : 0, transition: "opacity 0.5s ease" }}
               />
             ))}
-            {/* Lines */}
             {config.keys.map((key, ki) => (
               <path
                 key={`l-${ki}`} d={buildPath(key)}
@@ -253,7 +246,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
             ))}
           </g>
 
-          {/* Hover dots */}
           {config.data.map((d, i) =>
             config.keys.map((key, ki) => (
               <circle
@@ -274,7 +266,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
             ))
           )}
 
-          {/* Crosshair */}
           {tooltip && (
             <line
               x1={tooltip.x} x2={tooltip.x}
@@ -284,7 +275,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
           )}
         </svg>
 
-        {/* Floating tooltip */}
         {tooltip && (
           <div
             className="pointer-events-none absolute z-10 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl"
@@ -307,7 +297,6 @@ function InlineMiniChart({ config }: { config: ChartConfig }) {
         )}
       </div>
 
-      {/* Legend */}
       <div className="flex gap-4 mt-1">
         {config.keys.map((key, i) => (
           <div key={key} className="flex items-center gap-1.5">
@@ -352,14 +341,40 @@ export default function Home() {
   useEffect(() => { if (tab === "market") loadChart(chartTicker, chartPeriod); }, [tab, chartTicker, chartPeriod]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const loadDocs      = async () => { try { const r = await listDocuments(); setDocs(r.data.documents); } catch {} };
-  const loadAnalyses  = async () => { try { const r = await listAnalyses(); setAnalyses(r.data.analyses); } catch {} };
-  const loadAlerts    = async () => { try { const r = await listAlerts(); setAlerts(r.data.alerts); } catch {} };
+  // ── Fixed loadDocs — handles both response formats ──────────────────────────
+  const loadDocs = async () => {
+    try {
+      const r = await listDocuments();
+      console.log("Docs response:", r.data);
+      const documents = r.data.documents ?? r.data ?? [];
+      setDocs(Array.isArray(documents) ? documents : []);
+    } catch (err) {
+      console.error("Load docs error:", err);
+    }
+  };
+
+  const loadAnalyses  = async () => {
+    try {
+      const r = await listAnalyses();
+      const analyses = r.data.analyses ?? r.data ?? [];
+      setAnalyses(Array.isArray(analyses) ? analyses : []);
+    } catch {}
+  };
+
+  const loadAlerts = async () => {
+    try {
+      const r = await listAlerts();
+      const alerts = r.data.alerts ?? r.data ?? [];
+      setAlerts(Array.isArray(alerts) ? alerts : []);
+    } catch {}
+  };
+
   const loadWatchlist = async () => {
     const res: Record<string, any> = {};
     await Promise.all(WATCHLIST.map(async t => { try { const r = await getQuote(t); res[t] = r.data; } catch {} }));
     setQuotes(res);
   };
+
   const loadChart = async (ticker: string, period: string) => {
     try {
       const r  = await getHistory(ticker, period); setChartData(r.data.candles || []);
@@ -367,23 +382,40 @@ export default function Home() {
     } catch {}
   };
 
+  // ── Fixed onDrop — awaits loadDocs and shows proper errors ─────────────────
   const onDrop = useCallback(async (files: File[]) => {
     const id = toast.loading(`Uploading ${files.length} file(s)...`);
-    try { await uploadDocuments(files); toast.success("Uploaded!", { id }); loadDocs(); }
-    catch { toast.error("Upload failed", { id }); }
+    try {
+      const response = await uploadDocuments(files);
+      console.log("Upload response:", response.data);
+      toast.success("Uploaded!", { id });
+      await loadDocs(); // ← await to refresh list immediately
+    } catch (err: any) {
+      console.error("Upload error:", err?.response?.data || err);
+      toast.error(err?.response?.data?.detail || "Upload failed", { id });
+    }
   }, []);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, accept: { "application/pdf": [".pdf"], "text/csv": [".csv"] }
   });
 
-  const handleDelete  = async (id: string) => { try { await deleteDocument(id); loadDocs(); toast.success("Deleted"); } catch {} };
+  const handleDelete  = async (id: string) => {
+    try { await deleteDocument(id); await loadDocs(); toast.success("Deleted"); } catch {}
+  };
+
   const handleAnalyze = async () => {
     if (!selectedDocs.length) { toast.error("Select at least one document"); return; }
     setAnalyzing(true);
-    try { const r = await runAnalysis(selectedDocs, query); setLastAnalysis(r.data); loadAnalyses(); toast.success("Analysis complete!"); }
-    catch { toast.error("Analysis failed"); }
+    try {
+      const r = await runAnalysis(selectedDocs, query);
+      setLastAnalysis(r.data);
+      await loadAnalyses();
+      toast.success("Analysis complete!");
+    } catch { toast.error("Analysis failed"); }
     setAnalyzing(false);
   };
+
   const handleChat = () => {
     if (!chatInput.trim()) return;
     const msg = chatInput; setChatInput("");
@@ -395,6 +427,7 @@ export default function Home() {
       () => setChatLoading(false)
     );
   };
+
   const handleSearch   = async () => { if (!searchQ) return; try { const r = await searchTicker(searchQ); setSearchResults(r.data.results); } catch {} };
   const handleAddAlert = async () => {
     if (!alertTicker || !alertVal) { toast.error("Fill in all fields"); return; }
@@ -679,7 +712,6 @@ export default function Home() {
               </div>
 
               <div className="matte-card rounded-xl flex flex-col overflow-hidden flex-1">
-                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-5 space-y-4">
                   {messages.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
@@ -695,7 +727,6 @@ export default function Home() {
                   )}
 
                   {messages.map((m, i) => {
-                    // Auto-detect chart data from assistant responses
                     const chartConfig = m.role === "assistant" && m.content.length > 30
                       ? detectAndParseChart(m.content)
                       : null;
@@ -716,7 +747,6 @@ export default function Home() {
                               <ReactMarkdown className="prose prose-sm prose-invert max-w-none">
                                 {m.content || "▋"}
                               </ReactMarkdown>
-                              {/* Chart renders automatically when agent returns monthly data */}
                               {chartConfig && <InlineMiniChart config={chartConfig} />}
                             </>
                           ) : (
@@ -729,7 +759,6 @@ export default function Home() {
                   <div ref={chatEndRef} />
                 </div>
 
-                {/* Input */}
                 <div className="border-t p-3 flex gap-2" style={{ borderColor: "var(--border)" }}>
                   <input
                     value={chatInput}
